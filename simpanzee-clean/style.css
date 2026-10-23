@@ -1,0 +1,448 @@
+document.addEventListener("DOMContentLoaded", () => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  /* ── refs ─────────────────────────────────────── */
+  const stage       = $("#stage");
+  const dragLayer   = $("#dragLayer");
+  const allSlides   = $$(".slide");
+  const prevBtn     = $("#prevBtn");
+  const nextBtn     = $("#nextBtn");
+  const hudDots     = $("#dots");
+  const counter     = $("#counter");
+  const progressBar = $("#progressBar");
+  const swipeCue    = $("#swipeCue");
+  const beginBtn    = $("#beginBtn");
+
+  const stars         = $("#stars");
+  const floatingHearts = $("#floatingHearts");
+  const confetti      = $("#confetti");
+  const markMessage   = $("#markMessage");
+
+  const lightbox      = $("#lightbox");
+  const lightboxImage = $("#lightboxImage");
+  const lightboxClose = $("#lightboxClose");
+
+  const questionCard  = $("#questionCard");
+  const questionLabel = $("#questionLabel");
+  const questionTitle = $("#questionTitle");
+  const questionSub   = $("#questionSub");
+  const choiceArea    = $("#choiceArea");
+  const yesBtn        = $("#yesBtn");
+  const noBtn         = $("#noBtn");
+  const hint          = $("#hint");
+
+  if (!stage || !dragLayer || !allSlides.length) return;
+
+  /* ── state ────────────────────────────────────── */
+  const locked = new Set(["reveal"]);   // slides hidden until unlocked
+  let visible  = allSlides.filter(s => !locked.has(s.dataset.slide));
+  let current  = 0;
+  let slideW   = 0;
+  let dragX    = 0;
+  let startX   = 0;
+  let dragging = false;
+  let moved    = false;
+  let interacted = false;
+
+  /* ── question flow state ──────────────────────── */
+  let questionIndex = 0;
+  let noAttempts    = 0;
+  let markShown     = false;
+
+  const questions = [
+    {
+      label: "Question one · proceed carefully",
+      title: "Should I do<br><span>this again tomorrow?</span>",
+      sub:   "Choose wisely. The developer has already over-engineered the answer. 😂",
+      hint:  "You can say no. Probably."
+    },
+    {
+      label: "Question two · now be honest",
+      title: "Are you happy<br><span>you opened this?</span>",
+      sub:   "That is the only other question I have for you.",
+      hint:  "Just smile and press yes. 😌"
+    }
+  ];
+
+  const noLines = [
+    "Nice try. 😂",
+    "Are you sure, Mwende? 👀",
+    "Really sure?",
+    "Reeeeally sure?",
+    "Reeeeally reeeaaally sure?",
+    "That sure? Because I can keep asking. 😭",
+    "Okay, now you are just testing the developer.",
+    "The answer is still waiting for you. ✦"
+  ];
+  const noLabels = [
+    "No", "Still no?", "Really?", "Reeeeally?",
+    "Be serious 😂", "Try again", "Last chance", "Nope…"
+  ];
+
+  /* ── ambience ─────────────────────────────────── */
+  if (stars) {
+    for (let i = 0; i < 46; i++) {
+      const s = document.createElement("span");
+      s.className = "star";
+      s.style.left = Math.random() * 100 + "%";
+      s.style.top  = Math.random() * 100 + "%";
+      s.style.setProperty("--duration", (2.5 + Math.random() * 4).toFixed(2) + "s");
+      s.style.setProperty("--delay",    (-Math.random() * 4).toFixed(2) + "s");
+      stars.appendChild(s);
+    }
+  }
+  if (floatingHearts) {
+    ["♡", "✦", "·", "✧"].forEach((sym, i) => {
+      const h = document.createElement("span");
+      h.textContent = sym;
+      h.style.left = [10, 30, 70, 88][i] + "%";
+      h.style.top  = [18, 68, 28, 74][i] + "%";
+      h.style.fontSize = [15, 10, 14, 11][i] + "px";
+      h.style.setProperty("--duration", (3.8 + i * 0.65) + "s");
+      h.style.setProperty("--delay",    (-i * 0.7) + "s");
+      floatingHearts.appendChild(h);
+    });
+  }
+
+  /* ── HUD dots ─────────────────────────────────── */
+  function buildHudDots() {
+    if (!hudDots) return;
+    hudDots.innerHTML = "";
+    visible.forEach((_, i) => {
+      const d = document.createElement("span");
+      d.addEventListener("click", () => goTo(i));
+      hudDots.appendChild(d);
+    });
+  }
+
+  /* ── measure ──────────────────────────────────── */
+  function measure() {
+    slideW = stage.clientWidth;
+    dragLayer.style.transform = `translate3d(${-current * slideW}px,0,0)`;
+  }
+
+  /* ── navigation ───────────────────────────────── */
+  function setTransform(px) {
+    dragLayer.style.transform = `translate3d(${px}px,0,0)`;
+  }
+
+  function goTo(index, animate = true) {
+    current = Math.max(0, Math.min(index, visible.length - 1));
+    dragLayer.classList.toggle("is-animating", animate);
+    setTransform(-current * slideW);
+    updateUI();
+    markInteracted();
+  }
+
+  function updateUI() {
+    visible.forEach((s, i) => s.classList.toggle("is-active", i === current));
+
+    const dots = hudDots ? $$("span", hudDots) : [];
+    dots.forEach((d, i) => d.classList.toggle("is-active", i === current));
+
+    if (counter) {
+      counter.textContent =
+        String(current + 1).padStart(2, "0") +
+        " / " +
+        String(visible.length).padStart(2, "0");
+    }
+    if (progressBar) {
+      const pct = visible.length > 1
+        ? (current / (visible.length - 1)) * 100
+        : 100;
+      progressBar.style.width = pct + "%";
+    }
+    if (prevBtn) prevBtn.disabled = current === 0;
+    if (nextBtn) nextBtn.disabled = current === visible.length - 1;
+
+    // pause carousels that aren't on the active slide
+    // (iframes left alone — YouTube handles its own state)
+  }
+
+  function markInteracted() {
+    if (interacted) return;
+    interacted = true;
+    swipeCue?.classList.add("is-hidden");
+  }
+
+  /* ── drag / swipe ─────────────────────────────── */
+  function onPointerDown(e) {
+    if (e.target.closest(".track")) return;      // let carousels scroll
+    if (e.target.closest("button, a, iframe, .lightbox, .mark-message")) return;
+    dragging = true;
+    moved = false;
+    startX = e.clientX;
+    dragX = -current * slideW;
+    dragLayer.classList.remove("is-animating");
+    dragLayer.classList.add("is-dragging");
+    stage.setPointerCapture?.(e.pointerId);
+  }
+
+  function onPointerMove(e) {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    if (Math.abs(dx) > 4) moved = true;
+
+    // resistance at the ends
+    const atStart = current === 0 && dx > 0;
+    const atEnd   = current === visible.length - 1 && dx < 0;
+    const applied = (atStart || atEnd) ? dx * 0.32 : dx;
+
+    setTransform(dragX + applied);
+    markInteracted();
+  }
+
+  function onPointerUp(e) {
+    if (!dragging) return;
+    dragging = false;
+    dragLayer.classList.remove("is-dragging");
+
+    const dx = e.clientX - startX;
+    const threshold = slideW * 0.18;
+
+    if (dx < -threshold)      goTo(current + 1);
+    else if (dx > threshold)  goTo(current - 1);
+    else                      goTo(current);
+  }
+
+  stage.addEventListener("pointerdown", onPointerDown);
+  stage.addEventListener("pointermove", onPointerMove);
+  stage.addEventListener("pointerup",   onPointerUp);
+  stage.addEventListener("pointercancel", onPointerUp);
+
+  /* keyboard */
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight") goTo(current + 1);
+    if (e.key === "ArrowLeft")  goTo(current - 1);
+    if (e.key === "Escape")     closeLightbox();
+  });
+
+  /* HUD buttons */
+  prevBtn?.addEventListener("click", () => goTo(current - 1));
+  nextBtn?.addEventListener("click", () => goTo(current + 1));
+  beginBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    goTo(1);
+  });
+
+  window.addEventListener("resize", measure);
+  window.addEventListener("orientationchange", () => setTimeout(measure, 120));
+
+  /* ── carousels ────────────────────────────────── */
+  function setupCarousel(trackSelector, dotsSelector) {
+    const track = $(trackSelector);
+    if (!track) return;
+    const cards = $$(".carousel-card", track);
+    const dots  = dotsSelector ? $$("span", $(dotsSelector)) : [];
+
+    // seed dots
+    if (dots.length === 0 && dotsSelector) {
+      const wrap = $(dotsSelector);
+      if (wrap) {
+        cards.forEach((_, i) => {
+          const d = document.createElement("span");
+          if (i === 0) d.classList.add("is-active");
+          wrap.appendChild(d);
+        });
+      }
+    }
+
+    const sync = () => {
+      const center = track.scrollLeft + track.clientWidth / 2;
+      let best = 0, dist = Infinity;
+      cards.forEach((card, i) => {
+        const c = card.offsetLeft + card.offsetWidth / 2;
+        const d = Math.abs(center - c);
+        if (d < dist) { dist = d; best = i; }
+      });
+      cards.forEach((c, i) => c.classList.toggle("is-active", i === best));
+      const liveDots = dotsSelector ? $$("span", $(dotsSelector)) : [];
+      liveDots.forEach((d, i) => d.classList.toggle("is-active", i === best));
+    };
+
+    track.addEventListener("scroll", () => {
+      window.requestAnimationFrame(sync);
+    }, { passive: true });
+    window.addEventListener("resize", sync);
+    // give the browser a beat to lay out
+    setTimeout(sync, 60);
+  }
+
+  setupCarousel("#musicTrack", "#musicDots");
+  setupCarousel("#memoryTrack", "#memoryDots");
+
+  /* ── lightbox ─────────────────────────────────── */
+  $$(".photo-frame[data-lightbox]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!lightbox || !lightboxImage) return;
+      lightboxImage.src = btn.dataset.lightbox;
+      lightboxImage.alt = btn.querySelector("img")?.alt || "Memory";
+      lightbox.classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+      lightboxClose?.focus();
+    });
+  });
+
+  function closeLightbox() {
+    if (!lightbox || lightbox.classList.contains("hidden")) return;
+    lightbox.classList.add("hidden");
+    lightboxImage.src = "";
+    document.body.style.overflow = "";
+  }
+  lightboxClose?.addEventListener("click", closeLightbox);
+  lightbox?.addEventListener("click", (e) => {
+    if (e.target === lightbox) closeLightbox();
+  });
+
+  /* ── question flow ────────────────────────────── */
+  function updateQuestion() {
+    const q = questions[questionIndex];
+    if (questionLabel) questionLabel.textContent = q.label;
+    if (questionTitle) questionTitle.innerHTML   = q.title;
+    if (questionSub)   questionSub.textContent   = q.sub;
+    if (hint)          hint.textContent          = q.hint;
+    if (noBtn)         noBtn.textContent         = noLabels[Math.min(noAttempts, noLabels.length - 1)];
+  }
+
+  function moveNoButton() {
+    if (!choiceArea || !noBtn) return;
+    const area = choiceArea.getBoundingClientRect();
+    const btn  = noBtn.getBoundingClientRect();
+    const maxX = Math.max(8, area.width  - btn.width  - 12);
+    const maxY = Math.max(8, area.height - btn.height - 12);
+    const x = Math.random() * maxX - maxX / 2;
+    const y = Math.random() * maxY - maxY / 2;
+
+    noBtn.style.position = "absolute";
+    noBtn.style.transform = `translate(${x}px,${y}px)`;
+  }
+
+  function rejectNo() {
+    noAttempts++;
+    if (hint) hint.textContent = noLines[Math.min(noAttempts - 1, noLines.length - 1)];
+    if (noBtn) noBtn.textContent = noLabels[Math.min(noAttempts, noLabels.length - 1)];
+
+    if (noAttempts % 2 === 0) {
+      noBtn.animate(
+        [
+          { transform: "translate(0,0) rotate(0deg)" },
+          { transform: "translate(0,0) rotate(-7deg) scale(.97)" },
+          { transform: "translate(0,0) rotate(7deg) scale(1.03)" },
+          { transform: "translate(0,0) rotate(0deg)" }
+        ],
+        { duration: 380, easing: "ease-out" }
+      );
+    }
+    moveNoButton();
+  }
+
+  if (noBtn) {
+    ["pointerenter", "focus"].forEach((ev) =>
+      noBtn.addEventListener(ev, rejectNo)
+    );
+    noBtn.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      rejectNo();
+    }, { passive: false });
+    noBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      rejectNo();
+    });
+  }
+
+  if (yesBtn) {
+    yesBtn.addEventListener("click", () => {
+      if (questionIndex === 0) {
+        questionIndex = 1;
+        noAttempts = 0;
+        updateQuestion();
+        celebrate();
+        questionCard?.animate(
+          [
+            { transform: "scale(.98)", opacity: .75 },
+            { transform: "scale(1)",   opacity: 1 }
+          ],
+          { duration: 460, easing: "cubic-bezier(.2,.8,.2,1)" }
+        );
+      } else {
+        celebrate();
+        unlockReveal();
+      }
+    });
+  }
+
+  /* ── reveal flow ──────────────────────────────── */
+  function unlockReveal() {
+    const revealSlide = allSlides.find((s) => s.dataset.slide === "reveal");
+    if (!revealSlide) return;
+    revealSlide.classList.add("is-revealed");
+    locked.delete("reveal");
+    visible = allSlides.filter((s) => !locked.has(s.dataset.slide));
+    buildHudDots();
+    updateUI();
+    goTo(visible.length - 1);
+    setTimeout(showMarkMessage, 1600);
+  }
+
+  function showMarkMessage() {
+    if (markShown || !markMessage) return;
+    markShown = true;
+    markMessage.classList.remove("hidden");
+    markMessage.style.opacity = "";
+
+    setTimeout(() => {
+      markMessage.style.transition = "opacity .85s ease";
+      markMessage.style.opacity = "0";
+      setTimeout(() => {
+        markMessage.classList.add("hidden");
+        markMessage.style.opacity = "";
+        markMessage.style.transition = "";
+      }, 900);
+    }, 4200);
+  }
+
+  /* ── confetti ─────────────────────────────────── */
+  function celebrate() {
+    if (!confetti) return;
+    const colors = ["#ff8daf", "#ffd6e3", "#fff7fb", "#d8b4fe"];
+    for (let i = 0; i < 56; i++) {
+      const piece = document.createElement("span");
+      piece.className = "confetti-piece";
+      piece.style.left = Math.random() * 100 + "vw";
+      piece.style.setProperty("--drift", `${(Math.random() - 0.5) * 240}px`);
+      piece.style.setProperty("--rotation", `${Math.random() * 900 - 450}deg`);
+      piece.style.setProperty("--fall-duration", `${2.4 + Math.random() * 2.6}s`);
+      piece.style.background = colors[i % colors.length];
+      piece.style.animationDelay = `${Math.random() * 0.25}s`;
+      confetti.appendChild(piece);
+      setTimeout(() => piece.remove(), 6200);
+    }
+  }
+
+  /* ── 3D tilt (desktop pointers) ───────────────── */
+  if (window.matchMedia("(hover: hover)").matches) {
+    $$(".tilt").forEach((el) => {
+      el.addEventListener("pointermove", (e) => {
+        const r = el.getBoundingClientRect();
+        const px = (e.clientX - r.left) / r.width  - 0.5;
+        const py = (e.clientY - r.top)  / r.height - 0.5;
+        el.classList.add("is-tilting");
+        el.style.transform =
+          `perspective(900px) rotateX(${(-py * 6).toFixed(2)}deg) rotateY(${(px * 8).toFixed(2)}deg)`;
+      });
+      el.addEventListener("pointerleave", () => {
+        el.classList.remove("is-tilting");
+        el.style.transform = "";
+      });
+    });
+  }
+
+  /* ── boot ─────────────────────────────────────── */
+  buildHudDots();
+  // small delay so fonts/layout settle before we measure
+  requestAnimationFrame(() => {
+    measure();
+    updateUI();
+  });
+});
