@@ -41,14 +41,14 @@
     {
       label: "Question 1",
       title: "Did this little<br><span>morning note help?</span>",
-      sub: "Choose wisely. The developer has already over-engineered the answer. 😂",
-      hint: "You can say no. Probably."
+      sub: "A small message can make a day feel brighter.",
+      hint: "Choose whichever feels right."
     },
     {
       label: "Question 2",
-      title: "Do you still<br><span>love me?</span>",
-      sub: "That is the only other question I have for you.",
-      hint: "Just smile and press yes. 😌"
+      title: "Would you share<br><span>a little kindness?</span>",
+      sub: "Pass a kind thought along to someone today.",
+      hint: "One little act can go a long way."
     }
   ];
 
