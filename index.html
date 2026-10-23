@@ -4,481 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#120b18" />
-<title>A Little Good Morning ✦</title>
-<meta name="description" content="A small, personal good-morning note to brighten your day." />
+<title>A Little Good Morning</title>
+<meta name="description" content="A warm, interactive good-morning experience to brighten someone’s day." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-<style>
-/* ═══════════════════════════════════════════════
-   A LITTLE GOOD MORNING · smooth mobile UI
-   ═══════════════════════════════════════════════ */
-
-:root {
-  --bg: #120b18;
-  --text: #fff7fb;
-  --muted: #cbb8c9;
-  --rose: #ffb4c9;
-  --rose-strong: #ff8daf;
-  --violet: #d8b4fe;
-  --line: rgba(255, 255, 255, 0.12);
-  --glass: rgba(255, 255, 255, 0.055);
-  --shadow: 0 25px 70px rgba(0, 0, 0, 0.34);
-  --ease: cubic-bezier(0.22, 0.9, 0.24, 1);
-  --deck: cubic-bezier(0.86, 0, 0.07, 1);
-}
-
-* { box-sizing: border-box; }
-html, body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  background: var(--bg);
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-  color: var(--text);
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  touch-action: manipulation;
-}
-
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(circle at 50% -10%, #3a193d 0, transparent 45%),
-    radial-gradient(circle at 100% 70%, #24122f 0, transparent 35%),
-    var(--bg);
-}
-
-button, a { -webkit-tap-highlight-color: transparent; }
-button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
-a { text-decoration: none; color: inherit; }
-img { max-width: 100%; display: block; }
-h1, h2, h3, p { margin-top: 0; }
-h1, h2 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 600; letter-spacing: -0.03em; }
-
-/* ── AMBIENT BACKGROUND ──────────────────────── */
-.ambient {
-  position: fixed; width: 45vw; height: 45vw; border-radius: 50%;
-  filter: blur(80px); pointer-events: none; z-index: 1; opacity: 0.15;
-}
-.ambient-one { left: -10vw; top: 10vh; background: #ff7da6; }
-.ambient-two { right: -10vw; bottom: 5vh; background: #9d68ff; }
-
-.stars { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.42; }
-.star {
-  position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff;
-  animation: twinkle var(--duration, 4s) ease-in-out infinite;
-  animation-delay: var(--delay, 0s);
-}
-.floating-hearts span {
-  position: fixed; z-index: 1; pointer-events: none; color: rgba(255, 180, 201, 0.3);
-  animation: floatHeart var(--duration, 4s) ease-in-out infinite;
-  animation-delay: var(--delay, 0s);
-}
-
-/* ── PROGRESS BAR ────────────────────────────── */
-.progress {
-  position: fixed; top: 0; left: 0; right: 0; height: 3px;
-  background: rgba(255, 255, 255, 0.06); z-index: 60; pointer-events: none;
-}
-.progress span {
-  display: block; height: 100%; width: 0%;
-  background: linear-gradient(90deg, var(--rose), var(--violet));
-  box-shadow: 0 0 14px rgba(255, 180, 201, 0.55);
-  transition: width 0.4s ease-out;
-}
-
-/* ── SWIPEABLE DECK (NATIVE 60FPS SCROLL SNAP) ─ */
-.stage {
-  position: fixed; inset: 0; z-index: 2;
-}
-
-.deck {
-  display: flex;
-  width: 100vw;
-  height: 100dvh;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-.deck::-webkit-scrollbar { display: none; }
-
-/* ── SLIDE & INTERNAL VERTICAL SCROLL ───────── */
-.slide {
-  flex: 0 0 100vw;
-  width: 100vw;
-  height: 100dvh;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  padding: calc(env(safe-area-inset-top) + 20px) 16px calc(env(safe-area-inset-bottom) + 84px);
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-.slide-inner {
-  width: min(880px, 100%);
-  margin: auto;
-  position: relative;
-  z-index: 2;
-  padding-top: 10px;
-  padding-bottom: 20px;
-}
-
-.slide[data-slide="reveal"] { display: none; }
-.slide[data-slide="reveal"].is-revealed { display: flex; }
-
-/* ── ENTRANCE ANIMATIONS ────────────────────── */
-.anim {
-  opacity: 0;
-  transform: translateY(22px);
-  transition: opacity 0.65s ease, transform 0.75s var(--ease);
-}
-.slide.is-active .anim { opacity: 1; transform: translateY(0); }
-.slide.is-active .anim:nth-child(1) { transition-delay: 0.05s; }
-.slide.is-active .anim:nth-child(2) { transition-delay: 0.12s; }
-.slide.is-active .anim:nth-child(3) { transition-delay: 0.19s; }
-.slide.is-active .anim:nth-child(4) { transition-delay: 0.26s; }
-.slide.is-active .anim:nth-child(5) { transition-delay: 0.33s; }
-
-/* ── TYPOGRAPHY ─────────────────────────────── */
-.eyebrow, .mini-label {
-  margin: 0 0 12px;
-  color: var(--rose);
-  font-size: 0.7rem; font-weight: 800;
-  letter-spacing: 0.18em; line-height: 1.4; text-transform: uppercase;
-}
-.hero-copy {
-  max-width: 540px; margin: 0 auto 28px;
-  color: var(--muted);
-  font-size: clamp(0.95rem, 3vw, 1.1rem);
-  line-height: 1.7;
-}
-
-/* ── SLIDE 01 · HERO ─────────────────────────── */
-.hero-inner { text-align: center; }
-.hero-inner h1 {
-  margin: 0 0 18px;
-  font-size: clamp(3.2rem, 14vw, 7.5rem);
-  line-height: 0.88;
-}
-.hero-inner h1 span { color: var(--rose); }
-
-.primary-btn {
-  display: inline-flex; align-items: center; gap: 12px;
-  min-height: 52px; padding: 14px 26px;
-  border-radius: 999px;
-  color: #1b0d17; background: var(--rose);
-  font-weight: 800;
-  box-shadow: 0 14px 40px rgba(255, 141, 175, 0.22);
-  transition: transform 0.22s var(--ease), box-shadow 0.22s var(--ease);
-}
-.primary-btn .btn-arrow {
-  display: grid; place-items: center;
-  width: 24px; height: 24px; border-radius: 50%;
-  background: rgba(0, 0, 0, 0.12);
-  font-size: 0.85rem;
-}
-
-/* ── SLIDE 02 · VERSE ────────────────────────── */
-.verse-card {
-  position: relative;
-  width: min(720px, 100%); margin-inline: auto;
-  padding: clamp(24px, 5vw, 48px);
-  border: 1px solid var(--line); border-radius: 24px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
-  box-shadow: var(--shadow);
-  text-align: center; overflow: hidden;
-}
-.verse-mark {
-  position: absolute; top: -25px; left: 12px;
-  color: rgba(255, 180, 201, 0.1);
-  font: 10rem/1 Georgia, serif; pointer-events: none;
-}
-.verse {
-  position: relative; margin: 0 0 16px;
-  font: 600 clamp(1.35rem, 4.2vw, 2.3rem)/1.2 "Cormorant Garamond", Georgia, serif;
-}
-.verse-ref {
-  color: var(--muted);
-  font-size: 0.7rem; font-weight: 700;
-  letter-spacing: 0.14em; text-transform: uppercase;
-}
-.verse-punchline {
-  position: relative; margin-top: 22px; padding-top: 18px;
-  border-top: 1px solid var(--line);
-}
-.verse-punchline span {
-  display: block; margin-bottom: 6px; color: var(--rose);
-  font-size: 0.64rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
-}
-.verse-punchline strong {
-  display: block; font: 600 clamp(1rem, 3.5vw, 1.35rem)/1.2 "Cormorant Garamond", Georgia, serif;
-}
-.verse-punchline em {
-  display: block; max-width: 520px; margin: 8px auto 4px;
-  color: var(--muted); font: italic 1.05rem/1.3 "Cormorant Garamond", Georgia, serif;
-}
-.verse-punchline b {
-  display: block; color: var(--rose);
-  font: 600 1.15rem/1.1 "Cormorant Garamond", Georgia, serif;
-}
-
-/* ── CAROUSEL TRACKS ─────────────────────────── */
-.music-inner, .memory-inner {
-  display: flex; flex-direction: column; gap: 16px; align-items: center;
-}
-.chapter-head { text-align: center; max-width: 640px; }
-.chapter-head h2, .soft-note h2, .question-card h2, .reveal-inner h2 {
-  margin: 0 0 10px;
-  font-size: clamp(2rem, 7.5vw, 4rem);
-  line-height: 0.95;
-}
-.chapter-head h2 span, .soft-note h2 span, .question-card h2 span, .reveal-inner h2 span { color: var(--rose); }
-.chapter-head p { margin: 0 auto; color: var(--muted); font-size: 0.85rem; line-height: 1.6; }
-
-.track {
-  display: flex; gap: 14px; width: 100%;
-  overflow-x: auto; overflow-y: hidden;
-  padding: 4px 2px 14px;
-  scroll-snap-type: x mandatory;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-.track::-webkit-scrollbar { display: none; }
-
-.carousel-card {
-  flex: 0 0 88%; max-width: 520px;
-  scroll-snap-align: center;
-  scroll-snap-stop: always;
-  opacity: 0.55;
-  transform: scale(0.95);
-  transition: opacity 0.4s ease, transform 0.4s ease;
-}
-.carousel-card.is-active { opacity: 1; transform: scale(1); }
-
-/* MUSIC CARD */
-.music-card {
-  display: flex; flex-direction: column;
-  height: 380px; border: 1px solid var(--line); border-radius: 20px;
-  background: var(--glass); box-shadow: 0 16px 40px rgba(0,0,0,0.26);
-  overflow: hidden;
-}
-.music-header {
-  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
-  background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--line);
-}
-.music-art {
-  width: 44px; height: 44px; border-radius: 10px;
-  display: grid; place-items: center; flex-shrink: 0;
-}
-.art-one { background: linear-gradient(145deg, #c86b8d, #42204e); }
-.art-two { background: linear-gradient(145deg, #c28bb3, #34203c); }
-.music-copy { flex: 1; min-width: 0; }
-.song-title { margin: 0; font: 700 1.2rem/1.1 "Cormorant Garamond", Georgia, serif; }
-.song-artist { margin: 2px 0 0; color: var(--muted); font-size: 0.72rem; }
-
-.youtube-frame { flex: 1; width: 100%; background: #000; }
-.youtube-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
-
-/* MEMORY CARD */
-.memory-card {
-  display: flex; flex-direction: column; gap: 10px; padding: 10px;
-  border: 1px solid var(--line); border-radius: 20px;
-  background: rgba(255,255,255,0.04); box-shadow: 0 16px 40px rgba(0,0,0,0.25);
-}
-.photo-frame {
-  position: relative; width: 100%; height: 260px;
-  border-radius: 12px; overflow: hidden; background: #0c0810;
-  cursor: zoom-in; border: 0; padding: 0; text-align: left;
-}
-.photo-frame img {
-  width: 100%; height: 100%; object-fit: cover; object-position: center;
-}
-.photo-open {
-  position: absolute; right: 8px; bottom: 8px; z-index: 3;
-  padding: 5px 10px; border-radius: 999px;
-  background: rgba(18,11,24,0.65); backdrop-filter: blur(8px);
-  color: #fff; font-size: 0.6rem; font-weight: 600;
-  border: 1px solid rgba(255,255,255,0.15);
-}
-.memory-card figcaption { padding: 4px 6px; }
-.memory-card figcaption strong {
-  display: block; margin-bottom: 4px; color: var(--text);
-  font: 600 1.1rem/1.15 "Cormorant Garamond", Georgia, serif;
-}
-.memory-card figcaption span {
-  display: block; color: var(--muted); font-size: 0.72rem; line-height: 1.5;
-}
-.memory-card figcaption a { color: var(--rose); text-decoration: underline; text-underline-offset: 2px; }
-.memory-card figcaption .photo-credit { margin-top: 8px; font-size: 0.62rem; opacity: 0.8; }
-
-.carousel-footer { display: flex; justify-content: center; margin-top: 4px; }
-.dots { display: flex; gap: 6px; align-items: center; }
-.dots span {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: rgba(255,255,255,0.2);
-  transition: transform 0.3s ease, background 0.3s ease;
-}
-.dots span.is-active {
-  background: var(--rose); transform: scale(1.5);
-  box-shadow: 0 0 10px rgba(255,180,201,0.7);
-}
-
-/* ── SLIDE 04 · SOFT NOTE ────────────────────── */
-.soft-note {
-  position: relative; width: min(650px, 100%); margin-inline: auto;
-  padding: clamp(26px, 6vw, 52px);
-  border: 1px solid var(--line); border-radius: 24px;
-  background: linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-  box-shadow: var(--shadow); text-align: center; overflow: hidden;
-}
-.soft-note p { color: var(--muted); font-size: 0.92rem; line-height: 1.7; margin: 0; }
-
-/* ── SLIDE 06 · QUESTION ─────────────────────── */
-.question-card {
-  width: min(680px, 100%); margin-inline: auto;
-  padding: clamp(26px, 6vw, 50px);
-  border: 1px solid rgba(255,141,175,0.22); border-radius: 24px;
-  background: rgba(255,141,175,0.045); box-shadow: var(--shadow);
-  text-align: center; position: relative;
-}
-.question-sub { max-width: 540px; margin: 0 auto; color: var(--muted); font-size: 0.85rem; line-height: 1.65; }
-
-.choice-area {
-  position: relative; width: min(400px, 100%); height: 110px;
-  margin: 24px auto 0; display: flex; align-items: center; justify-content: center; gap: 16px;
-}
-.yes-btn, .no-btn {
-  min-height: 48px; padding: 12px 26px; border-radius: 999px; font-weight: 800;
-  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
-}
-.yes-btn {
-  background: var(--rose); color: #210f18;
-  box-shadow: 0 12px 30px rgba(255,141,175,0.22); z-index: 2;
-}
-.no-btn {
-  background: rgba(255,255,255,0.08); border: 1px solid var(--line);
-  color: var(--text); z-index: 1; will-change: transform;
-}
-.hint { min-height: 20px; margin: 10px 0 0; color: var(--muted); font-size: 0.78rem; }
-
-/* ── SLIDE 07 · REVEAL ───────────────────────── */
-.reveal-inner { width: min(800px, 100%); text-align: center; }
-.success-symbol {
-  width: 60px; height: 60px; margin: 0 auto 18px;
-  display: grid; place-items: center; border-radius: 50%;
-  color: #210f18; background: var(--rose); font-size: 1.3rem;
-  box-shadow: 0 0 50px rgba(255,141,175,0.3);
-}
-.reveal-copy { max-width: 580px; margin: 0 auto 28px; color: var(--muted); font-size: 0.92rem; line-height: 1.75; }
-.reasons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: left; }
-.reasons article { padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--glass); }
-.reasons span { color: var(--rose); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.1em; }
-.reasons h3 { margin: 14px 0 6px; font: 1.45rem/1 "Cormorant Garamond", Georgia, serif; }
-.reasons p { margin: 0; color: var(--muted); font-size: 0.76rem; line-height: 1.55; }
-.closing-note { margin-top: 28px; color: var(--muted); }
-.closing-note strong { display: block; margin-top: 4px; color: var(--text); font: 1.4rem/1 "Cormorant Garamond", Georgia, serif; }
-
-/* ── HUD NAVIGATION & SWIPE CUE ──────────────── */
-.swipe-cue {
-  position: fixed; left: 50%; bottom: calc(76px + env(safe-area-inset-bottom));
-  transform: translateX(-50%); z-index: 40;
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px;
-  background: rgba(18,11,24,0.6); backdrop-filter: blur(10px);
-  color: rgba(255,247,251,0.7); font-size: 0.6rem; font-weight: 700;
-  letter-spacing: 0.15em; text-transform: uppercase; pointer-events: none;
-  animation: swipeCue 2.4s ease-in-out infinite;
-  transition: opacity 0.5s ease;
-}
-.swipe-cue .arrow { color: var(--rose); font-size: 0.8rem; }
-.swipe-cue.is-hidden { opacity: 0; visibility: hidden; }
-
-.hud {
-  position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom));
-  transform: translateX(-50%); z-index: 50;
-  display: flex; align-items: center; gap: 12px;
-  padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px;
-  background: rgba(18,11,24,0.65); backdrop-filter: blur(14px);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
-}
-.hud .nav {
-  width: 32px; height: 32px; border-radius: 50%;
-  display: grid; place-items: center; color: var(--text);
-  background: rgba(255,255,255,0.06); border: 1px solid var(--line);
-  font-size: 0.85rem; transition: background 0.2s ease, opacity 0.2s ease;
-}
-.hud .nav:disabled { opacity: 0.25; cursor: not-allowed; }
-.hud .counter { min-width: 52px; text-align: center; color: var(--muted); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; }
-
-/* ── LIGHTBOX ────────────────────────────────── */
-.lightbox {
-  position: fixed; inset: 0; z-index: 1000;
-  display: grid; place-items: center; padding: 14px;
-  background: rgba(8,5,11,0.92); backdrop-filter: blur(14px);
-}
-.lightbox img {
-  max-width: 94vw; max-height: 82svh; object-fit: contain; border-radius: 12px;
-  box-shadow: 0 25px 90px rgba(0,0,0,0.55);
-}
-.lightbox-close {
-  position: absolute; top: max(16px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right));
-  width: 42px; height: 42px; border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.1);
-  color: #fff; font-size: 1.5rem; display: grid; place-items: center; z-index: 2;
-}
-
-/* ── MARK MESSAGE ────────────────────────────── */
-.mark-message {
-  position: fixed; inset: 0; z-index: 1200;
-  display: grid; place-items: center; padding: 20px;
-  background: rgba(18,11,24,0.88); backdrop-filter: blur(18px);
-}
-.mark-inner {
-  width: min(500px, 100%); padding: 36px 20px;
-  border: 1px solid rgba(255,180,201,0.22); border-radius: 22px;
-  background: linear-gradient(145deg, rgba(255,255,255,0.09), rgba(255,255,255,0.025));
-  box-shadow: var(--shadow); text-align: center;
-}
-.mark-inner span { color: var(--rose); font-size: 0.65rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
-.mark-inner strong { display: block; margin: 16px 0 10px; font: 600 clamp(1.8rem, 8vw, 3.2rem)/1 "Cormorant Garamond", Georgia, serif; }
-.mark-inner small { color: var(--muted); font-size: 0.74rem; }
-
-/* ── CONFETTI ────────────────────────────────── */
-.confetti-piece {
-  position: fixed; top: -20px; z-index: 1300; width: 7px; height: 12px; border-radius: 2px;
-  pointer-events: none; animation: fall var(--fall-duration, 3s) linear forwards;
-}
-
-.hidden { display: none !important; }
-
-/* ── KEYFRAMES ───────────────────────────────── */
-@keyframes twinkle { 0%, 100% { opacity: 0.08; transform: scale(0.7); } 50% { opacity: 0.85; transform: scale(1.3); } }
-@keyframes floatHeart { 0%, 100% { transform: translateY(0) rotate(-6deg); opacity: 0.12; } 50% { transform: translateY(-16px) rotate(6deg); opacity: 0.5; } }
-@keyframes fall { to { transform: translate3d(var(--drift), 105vh, 0) rotate(var(--rotation)); opacity: 0; } }
-@keyframes swipeCue { 0%, 100% { transform: translate(-50%, 0); opacity: 0.6; } 50% { transform: translate(-50%, -6px); opacity: 1; } }
-
-/* ── RESPONSIVE MOBILE TWEAKS ────────────────── */
-@media (max-width: 700px) {
-  .reasons { grid-template-columns: 1fr; gap: 10px; }
-  .music-card { height: 350px; }
-  .photo-frame { height: 220px; }
-}
-</style>
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
@@ -490,513 +22,198 @@ h1, h2 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 600; le
 <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
 
 <main class="stage">
-  <div class="deck" id="deck">
+ <div class="deck" id="deck">
 
-    <!-- 01 · HERO -->
-    <section class="slide is-active" data-slide="intro" aria-label="Introduction">
-      <div class="slide-inner hero-inner">
-        <h1 class="anim">Hey, you.<br /><span>Good morning.</span></h1>
-        <p class="hero-copy anim">Hi, I thought I'd take a moment to wish you a good morning. No big reason — just hoping something good finds you today. ☀️</p>
-        <button id="beginBtn" class="primary-btn anim" type="button">
-          <span>Come on in</span>
-          <span class="btn-arrow" aria-hidden="true">↗</span>
-        </button>
-      </div>
-    </section>
+ <!-- 01 · HERO -->
+ <section class="slide is-active" data-slide="intro" aria-label="Introduction">
+ <div class="slide-inner hero-inner">
+ <h1 class="anim">Hello👋🏾<br /><span>Good morning.</span></h1>
+ <p class="hero-copy anim">Hi, I thought I'd take a moment to wish you a good morning. you deserve more than just a normal good morning message. </p>
+ <button id="beginBtn" class="primary-btn anim" type="button">
+ <span>swipe to the left</span>
+ <span class="btn-arrow" aria-hidden="true">↗</span>
+ </button>
+ </div>
+ </section>
 
-    <!-- 02 · VERSE -->
-    <section class="slide" data-slide="verse" aria-label="Verse of the day">
-      <div class="slide-inner">
-        <article class="verse-card">
-          <div class="verse-mark" aria-hidden="true">“</div>
-          <p class="verse anim">This is the day which the LORD hath made; we will rejoice and be glad in it.</p>
-          <div class="verse-ref anim">Psalm 118:24 · KJV</div>
-          <div class="verse-punchline anim">
-            <span>A small morning prayer</span>
-            <strong>Good health, peace of mind, enough joy, and a little extra strength.</strong>
-            <em>May whatever feels heavy become lighter, and may a good surprise find its way to you today.</em>
-            <b>Amen. 🙏🏾</b>
-          </div>
-        </article>
-      </div>
-    </section>
+ <!-- 02 · VERSE -->
+ <section class="slide" data-slide="verse" aria-label="Verse of the day">
+ <div class="slide-inner">
+ <article class="verse-card">
+ <div class="verse-mark" aria-hidden="true">“</div>
+ <p class="verse anim">This is the day which the LORD hath made; we will rejoice and be glad in it.</p>
+ <div class="verse-ref anim">Psalm 118:24 · KJV</div>
+ <div class="verse-punchline anim">
+ <span>A small morning prayer</span>
+ <strong>Mungu, Afya Njema, Amani na Pesa kwa Wingi</strong>
+ <b>Amen. 🙏🏾</b>
+ </div>
+ </article>
+ </div>
+ </section>
 
-    <!-- 03 · MUSIC -->
-    <section class="slide" data-slide="music" aria-label="Today's soundtrack">
-      <div class="slide-inner music-inner">
-        <header class="chapter-head anim">
-          <p class="mini-label">Music🎶🎧</p>
-          <h2>A little soundtrack<br /><span>for your morning.</span></h2>
-          <p>Pick a song, take a breath, and ease into the day at your own pace.</p>
-        </header>
+ <!-- 03 · MUSIC -->
+ <section class="slide" data-slide="music" aria-label="Today's soundtrack">
+ <div class="slide-inner music-inner">
+ <header class="chapter-head anim">
+ <h2>A little soundtrack<br /><span>for your morning.</span></h2>
+ <p>Nme penda izi wimbo juu hua naku kumbuka nazo.</p>
+ </header>
 
-        <div class="track music-track anim" id="musicTrack">
-          <article class="carousel-card music-card is-active">
-            <div class="music-header">
-              <div class="music-art art-one"><span style="color:#fff;">♪</span></div>
-              <div class="music-copy">
-                <p class="song-title">Let Go</p>
-                <p class="song-artist">Central Cee</p>
-              </div>
-            </div>
-            <div class="youtube-frame">
-              <iframe data-src="https://www.youtube.com/embed/BqucGvLxrEk" title="Central Cee - Let Go" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-            </div>
-          </article>
+ <div class="track music-track anim" id="musicTrack">
+ <article class="carousel-card music-card is-active">
+ <div class="music-header">
+ <div class="music-art art-one"><span style="color:#fff;">♪</span></div>
+ <div class="music-copy">
+ <p class="song-title">Let Go</p>
+ <p class="song-artist">Central Cee</p>
+ </div>
+ </div>
+ <div class="youtube-frame">
+ <iframe data-src="https://www.youtube.com/embed/BqucGvLxrEk" title="Central Cee - Let Go" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+ </div>
+ </article>
 
-          <article class="carousel-card music-card">
-            <div class="music-header">
-              <div class="music-art art-two"><span style="color:#fff;">♡</span></div>
-              <div class="music-copy">
-                <p class="song-title">Nakupenda</p>
-                <p class="song-artist">Vijana Barubaru</p>
-              </div>
-            </div>
-            <div class="youtube-frame">
-              <iframe data-src="https://www.youtube.com/embed/Dgrg6otS4vA?rel=0&modestbranding=1" title="Vijana Barubaru - Nakupenda" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-            </div>
-          </article>
-        </div>
+ <article class="carousel-card music-card">
+ <div class="music-header">
+ <div class="music-art art-two"><span style="color:#fff;">♡</span></div>
+ <div class="music-copy">
+ <p class="song-title">Nakupenda</p>
+ <p class="song-artist">Vijana Barubaru</p>
+ </div>
+ </div>
+ <div class="youtube-frame">
+ <iframe data-src="https://www.youtube.com/embed/Dgrg6otS4vA?rel=0&modestbranding=1" title="Vijana Barubaru - Nakupenda" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+ </div>
+ </article>
+ </div>
 
-        <footer class="carousel-footer anim">
-          <div class="dots" id="musicDots"></div>
-        </footer>
-      </div>
-    </section>
+ <footer class="carousel-footer anim">
+ <div class="dots" id="musicDots"></div>
+ </footer>
+ </div>
+ </section>
 
-    <!-- 04 · NOTE -->
-    <section class="slide" data-slide="note" aria-label="A small observation">
-      <div class="slide-inner">
-        <div class="soft-note">
-          <p class="mini-label anim">A little note, just between us and the morning</p>
-          <h2 class="anim">You don’t have to<br /><span>have it all figured out.</span></h2>
-          <p class="anim">Some days start slowly. Some plans take time. Take a breath, give yourself a little grace, and handle one thing at a time. You’re allowed to begin again.</p>
-        </div>
-      </div>
-    </section>
+ <!-- 04 · NOTE -->
+ <section class="slide" data-slide="note" aria-label="A small observation">
+ <div class="slide-inner">
+ <div class="soft-note">
+ <p class="mini-label anim">A little note</p>
+ <h2 class="anim">Hey, sooo , nlikua nme boeka<br />na I was thinking of you. Like I always do.<span></span></h2>
+ <p class="anim"> na coding skuizi hukua my hobby. Sa nka sema acha ni do what I do best. Hope ime kunice </p>
+ </div>
+ </div>
+ </section>
 
-    <!-- 05 · LITTLE MOMENTS -->
-    <section class="slide" data-slide="memory" aria-label="Beautiful things">
-      <div class="slide-inner memory-inner">
-        <header class="chapter-head anim">
-          <h2>A few little things<br /><span>to warm your morning</span></h2>
-          <p>Swipe through. Stay a little longer wherever your eyes want to rest.</p>
-        </header>
+ <!-- 05 · LITTLE MOMENTS -->
+ <section class="slide" data-slide="memory" aria-label="Beautiful things">
+ <div class="slide-inner memory-inner">
+ <header class="chapter-head anim">
+ <h2>Memories<br /><span>These pictures were to remind me of you</span></h2>
+ <p>But sa nli poteza picha zako </p>
+ </header>
 
-        <div class="track memory-track anim" id="memoryTrack">
-          <figure class="carousel-card memory-card is-active">
-            <button class="photo-frame" type="button" data-lightbox="https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1400&q=85">
-              <img src="https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1000&q=85" alt="Soft golden morning light spilling across a peaceful green landscape" loading="lazy" />
-              <span class="photo-open">take a closer look ↗</span>
-            </button>
-            <figcaption>
-              <strong>Every sunrise is a fresh page.</strong>
-              <span>You don’t have to get everything right today. Just begin somewhere.</span>
-            </figcaption>
-          </figure>
+ <div class="track memory-track anim" id="memoryTrack">
+ <figure class="carousel-card memory-card is-active">
+ <button class="photo-frame" type="button" data-lightbox="https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1400&q=85">
+ <img src="https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1000&q=85" alt="Soft golden morning light spilling across a peaceful green landscape" loading="lazy" />
+ <span class="photo-open">take a closer look</span>
+ </button>
+ <figcaption>
+ <strong>Its a beautiful day.</strong>
+ </figcaption>
+ </figure>
 
-          <figure class="carousel-card memory-card">
-            <button class="photo-frame" type="button" data-lightbox="https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1400&q=85">
-              <img src="https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1000&q=85" alt="A gentle, colourful bouquet of flowers" loading="lazy" />
-              <span class="photo-open">take a closer look ↗</span>
-            </button>
-            <figcaption>
-              <strong>Little things count, too.</strong>
-              <span>A kind word, a favourite song, a quiet moment — sometimes that’s enough to shift a day.</span>
-            </figcaption>
-          </figure>
+ <figure class="carousel-card memory-card">
+ <button class="photo-frame" type="button" data-lightbox="https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1400&q=85">
+ <img src="https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1000&q=85" alt="A gentle, colourful bouquet of flowers" loading="lazy" />
+ <span class="photo-open">take a closer look</span>
+ </button>
+ <figcaption>
+ <strong>Okal once said, kindness costs nothing but gives everything.</strong>
+ </figcaption>
+ </figure>
 
-          <figure class="carousel-card memory-card">
-            <button class="photo-frame" type="button" data-lightbox="https://upload.wikimedia.org/wikipedia/commons/7/73/BarackObama2010.jpg">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/7/73/BarackObama2010.jpg" alt="Barack Obama speaking at a rally" loading="lazy" />
-              <span class="photo-open">take a closer look ↗</span>
-            </button>
-            <figcaption>
-              <strong>“Love is love.” — Barack Obama</strong>
-              <span>From his June 26, 2015 remarks on marriage equality. <a href="https://obamawhitehouse.archives.gov/the-press-office/2015/06/26/remarks-president-supreme-court-decision-marriage-equality" target="_blank" rel="noopener noreferrer">Read the original remarks ↗</a></span>
-              <span class="photo-credit">Photo: Jonathunder / Wikimedia Commons · <a href="https://commons.wikimedia.org/wiki/File:BarackObama2010.jpg" target="_blank" rel="noopener noreferrer">CC BY-SA 3.0</a>.</span>
-            </figcaption>
-          </figure>
-        </div>
+ <figure class="carousel-card memory-card">
+ <button class="photo-frame" type="button" data-lightbox="https://upload.wikimedia.org/wikipedia/commons/7/73/BarackObama2010.jpg">
+ <img src="https://upload.wikimedia.org/wikipedia/commons/7/73/BarackObama2010.jpg" alt="Barack Obama speaking at a rally" loading="lazy" />
+ <span class="photo-open">take a closer look</span>
+ </button>
+ <figcaption>
+ <strong>“Love is love.” — Barack Obama</strong>
+ <span>Prince Indah naye aka sema, kihero ng'ato ti mak lwete</span>
+ </figcaption>
+ </figure>
+ </div>
 
-        <footer class="carousel-footer anim">
-          <div class="dots" id="memoryDots"></div>
-        </footer>
-      </div>
-    </section>
+ <footer class="carousel-footer anim">
+ <div class="dots" id="memoryDots"></div>
+ </footer>
+ </div>
+ </section>
 
-    <!-- 06 · QUESTION -->
-    <section class="slide" data-slide="question" aria-label="A question">
-      <div class="slide-inner">
-        <div class="question-card" id="questionCard">
-          <p class="mini-label anim" id="questionLabel">Question 1</p>
-          <h2 class="anim" id="questionTitle">Did I make you<br /><span> happy ??</span></h2>
+ <!-- 06 · QUESTION -->
+ <section class="slide" data-slide="question" aria-label="A question">
+ <div class="slide-inner">
+ <div class="question-card" id="questionCard">
+ <p class="mini-label anim" id="questionLabel">Question 1</p>
+ <h2 class="anim" id="questionTitle">Did I make you<br /><span> happy ??</span></h2>
 
-          <div class="choice-area anim" id="choiceArea">
-            <button id="yesBtn" class="yes-btn" type="button">Yes ✦</button>
-            <button id="noBtn" class="no-btn" type="button">No</button>
-          </div>
+ <div class="choice-area anim" id="choiceArea">
+ <button id="yesBtn" class="yes-btn" type="button">Yes ✦</button>
+ <button id="noBtn" class="no-btn" type="button">No</button>
+ </div>
 
-          <p class="hint anim" id="hint">You can say no. Probably.</p>
-        </div>
-      </div>
-    </section>
+ <p class="hint anim" id="hint">You can say no. Probably.</p>
+ </div>
+ </div>
+ </section>
 
-    <!-- 07 · REVEAL -->
-    <section class="slide" data-slide="reveal" aria-label="The ending" aria-hidden="true">
-      <div class="slide-inner reveal-inner">
-        <div class="success-symbol anim" aria-hidden="true">✦</div>
-        <p class="eyebrow anim">Excellent decision. Your morning upgrade awaits.</p>
-        <h2 class="anim">Alafu ukumbuke<br /><span>haya.</span></h2>
-        <div class="reasons">
-          <article class="anim"><span>01</span><h3>Be gentle with yourself.</h3><p>You’re human. You’re learning. You deserve patience on the days when everything feels like a lot.</p></article>
-          <article class="anim"><span>02</span><h3>Keep your light.</h3><p>The world can be noisy, but don’t let it talk you out of being the thoughtful, curious person you are.</p></article>
-          <article class="anim"><span>03</span><h3>There is good ahead.</h3><p>You haven’t met every person who will cheer for you, heard every song you’ll love, or seen every beautiful place yet.</p></article>
-        </div>
-        <div class="closing-note anim">
-          <p>For now, that is all.</p>
-          <strong>I hope today is kind to you. ♡</strong>
-        </div>
-      </div>
-    </section>
+ <!-- 07 · REVEAL -->
+ <section class="slide" data-slide="reveal" aria-label="The ending" aria-hidden="true">
+ <div class="slide-inner reveal-inner">
+ <p class="eyebrow anim">In conclusion</p>
+ <h2 class="anim">Kumbuka haya<br /><span>Mai lav</span></h2>
+ <div class="reasons">
+ <article class="anim"><span>01</span><h3>Punguza kiburi</h3><p> Ayie in nyaluo lakini, pride doesnt help. Infact the bible documents, pride comes before the fall.</p></article>
+ <article class="anim"><span>02</span><h3>Continue being you.</h3><p>The real you is pure hearted, real you is perfect, I love the real you.</p></article>
+ <article class="anim"><span>03</span><h3>We ni mrembo</h3><p>Kaschanana karembo kakona kadot na mafurmbanya kilo 41</p></article>
+ </div>
+ <div class="closing-note anim">
+ <p>Aya , byeee.</p>
+ <strong>I hope today is kind to you. ♡</strong>
+ </div>
+ </div>
+ </section>
 
-  </div>
+ </div>
 </main>
 
 <div class="swipe-cue" id="swipeCue" aria-hidden="true">
-  <span>swipe</span><span class="arrow">→</span>
+ <span>swipe</span><span class="arrow">→</span>
 </div>
 
 <nav class="hud" aria-label="Section navigation">
-  <button class="nav" id="prevBtn" type="button" aria-label="Previous section">←</button>
-  <div class="dots" id="dots"></div>
-  <span class="counter" id="counter">01 / 06</span>
-  <button class="nav" id="nextBtn" type="button" aria-label="Next section">→</button>
+ <button class="nav" id="prevBtn" type="button" aria-label="Previous section">←</button>
+ <div class="dots" id="dots"></div>
+ <span class="counter" id="counter">01 / 06</span>
+ <button class="nav" id="nextBtn" type="button" aria-label="Next section">→</button>
 </nav>
 
 <div id="lightbox" class="lightbox hidden" role="dialog" aria-modal="true">
-  <button id="lightboxClose" class="lightbox-close" type="button">×</button>
-  <img id="lightboxImage" src="" alt="Memory view" />
+ <button id="lightboxClose" class="lightbox-close" type="button">×</button>
+ <img id="lightboxImage" src="" alt="Memory view" />
 </div>
 
 <div id="markMessage" class="mark-message hidden" aria-live="polite">
-  <div class="mark-inner">
-    <span>One last thing…</span>
-    <strong>Go on, make today a little brighter. And remember to be kind to yourself. ☀️</strong>
-  </div>
+ <div class="mark-inner">
+ <span>One last thing…</span>
+ <strong>I still love you but for my peace of mind I prefer if we dont talk reguraly.</strong>
+ </div>
 </div>
 
 <div id="confetti" class="confetti" aria-hidden="true"></div>
 
-<script>
-(function () {
-  "use strict";
-
-  const $ = (s, r = document) => r.querySelector(s);
-  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
-
-  const deck = $("#deck");
-  let allSlides = $$(".slide");
-  const prevBtn = $("#prevBtn");
-  const nextBtn = $("#nextBtn");
-  const hudDots = $("#dots");
-  const counter = $("#counter");
-  const progressBar = $("#progressBar");
-  const swipeCue = $("#swipeCue");
-  const beginBtn = $("#beginBtn");
-
-  const stars = $("#stars");
-  const floatingHearts = $("#floatingHearts");
-  const confetti = $("#confetti");
-  const markMessage = $("#markMessage");
-
-  const lightbox = $("#lightbox");
-  const lightboxImage = $("#lightboxImage");
-  const lightboxClose = $("#lightboxClose");
-
-  const questionCard = $("#questionCard");
-  const questionLabel = $("#questionLabel");
-  const questionTitle = $("#questionTitle");
-  const questionSub = $("#questionSub");
-  const choiceArea = $("#choiceArea");
-  const yesBtn = $("#yesBtn");
-  const noBtn = $("#noBtn");
-  const hint = $("#hint");
-
-  let current = 0;
-  let questionIndex = 0;
-  let noAttempts = 0;
-  let markShown = false;
-
-  const questions = [
-    {
-      label: "Question 1",
-      title: "Did this little<br><span>morning note help?</span>",
-      sub: "Choose wisely. The developer has already over-engineered the answer. 😂",
-      hint: "You can say no. Probably."
-    },
-    {
-      label: "Question 2",
-      title: "Should I send another little<br><span>good-morning sometime?</span>",
-      sub: "That is the only other question I have for you.",
-      hint: "Just smile and press yes. 😌"
-    }
-  ];
-
-  const noLines = [
-    "Acha izo 😂",
-    "Are you sure? 👀",
-    "Ghaii 💔, really",
-    "Really sure?",
-    "Reeeeally sure?",
-    "Reeeeally reeeaaally sure?",
-    "I reject your answer. 😭",
-    "That sure? Because I can keep asking. 😭",
-    "The answer is still waiting for you. ✦"
-  ];
-  const noLabels = [
-    "No", "Still no?", "Really?", "Reeeeally?",
-    "Be serious 😂", "Try again", "Last chance", "Nope…"
-  ];
-
-  /* ── AMBIANCE ──────────────────────────────── */
-  if (stars) {
-    for (let i = 0; i < 36; i++) {
-      const s = document.createElement("span");
-      s.className = "star";
-      s.style.left = Math.random() * 100 + "%";
-      s.style.top = Math.random() * 100 + "%";
-      s.style.setProperty("--duration", (2.5 + Math.random() * 3).toFixed(2) + "s");
-      s.style.setProperty("--delay", (-Math.random() * 3).toFixed(2) + "s");
-      stars.appendChild(s);
-    }
-  }
-  if (floatingHearts) {
-    ["♡", "✦", "·", "✧"].forEach((sym, i) => {
-      const h = document.createElement("span");
-      h.textContent = sym;
-      h.style.left = [12, 35, 68, 88][i] + "%";
-      h.style.top = [20, 65, 30, 75][i] + "%";
-      h.style.fontSize = [14, 10, 12, 11][i] + "px";
-      h.style.setProperty("--duration", (4 + i * 0.5) + "s");
-      floatingHearts.appendChild(h);
-    });
-  }
-
-  /* ── HUD DOTS & NAVIGATION ─────────────────── */
-  function buildHudDots() {
-    if (!hudDots) return;
-    hudDots.innerHTML = "";
-    allSlides.filter(s => s.style.display !== "none").forEach((_, i) => {
-      const d = document.createElement("span");
-      d.addEventListener("click", () => scrollToSlide(i));
-      hudDots.appendChild(d);
-    });
-  }
-
-  function scrollToSlide(index) {
-    const visibleSlides = allSlides.filter(s => s.style.display !== "none");
-    if (index < 0 || index >= visibleSlides.length) return;
-    visibleSlides[index].scrollIntoView({ behavior: "smooth", inline: "start" });
-  }
-
-  /* ── OBSERVER FOR SLIDE TRACKING ────────────── */
-  const slideObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const visibleSlides = allSlides.filter(s => s.style.display !== "none");
-        const idx = visibleSlides.indexOf(entry.target);
-        if (idx !== -1) {
-          current = idx;
-          updateUI(visibleSlides);
-          lazyLoadIframes(entry.target);
-        }
-      }
-    });
-  }, { root: deck, threshold: 0.6 });
-
-  allSlides.forEach(s => slideObserver.observe(s));
-
-  function updateUI(visibleSlides) {
-    visibleSlides.forEach((s, i) => s.classList.toggle("is-active", i === current));
-
-    const dots = $$("span", hudDots);
-    dots.forEach((d, i) => d.classList.toggle("is-active", i === current));
-
-    if (counter) {
-      counter.textContent = String(current + 1).padStart(2, "0") + " / " + String(visibleSlides.length).padStart(2, "0");
-    }
-    if (progressBar) {
-      const pct = visibleSlides.length > 1 ? (current / (visibleSlides.length - 1)) * 100 : 100;
-      progressBar.style.width = pct + "%";
-    }
-    if (prevBtn) prevBtn.disabled = current === 0;
-    if (nextBtn) nextBtn.disabled = current === visibleSlides.length - 1;
-
-    if (current > 0 && swipeCue) swipeCue.classList.add("is-hidden");
-  }
-
-  function lazyLoadIframes(slideEl) {
-    const iframes = $$("iframe[data-src]", slideEl);
-    iframes.forEach(iframe => {
-      if (!iframe.src) {
-        iframe.src = iframe.dataset.src;
-      }
-    });
-  }
-
-  if (prevBtn) prevBtn.addEventListener("click", () => scrollToSlide(current - 1));
-  if (nextBtn) nextBtn.addEventListener("click", () => scrollToSlide(current + 1));
-  if (beginBtn) beginBtn.addEventListener("click", () => scrollToSlide(1));
-
-  /* ── CAROUSELS (MUSIC & MEMORIES) ──────────── */
-  function setupCarousel(trackSelector, dotsSelector) {
-    const track = $(trackSelector);
-    if (!track) return;
-    const cards = $$(".carousel-card", track);
-    const wrap = dotsSelector ? $(dotsSelector) : null;
-
-    if (wrap && wrap.children.length === 0) {
-      cards.forEach((_, i) => {
-        const d = document.createElement("span");
-        if (i === 0) d.classList.add("is-active");
-        wrap.appendChild(d);
-      });
-    }
-
-    const sync = () => {
-      const center = track.scrollLeft + track.clientWidth / 2;
-      let best = 0, dist = Infinity;
-      cards.forEach((card, i) => {
-        const c = card.offsetLeft + card.offsetWidth / 2;
-        const d = Math.abs(center - c);
-        if (d < dist) { dist = d; best = i; }
-      });
-      cards.forEach((c, i) => c.classList.toggle("is-active", i === best));
-      if (wrap) {
-        $$("span", wrap).forEach((d, i) => d.classList.toggle("is-active", i === best));
-      }
-    };
-
-    track.addEventListener("scroll", sync, { passive: true });
-  }
-
-  setupCarousel("#musicTrack", "#musicDots");
-  setupCarousel("#memoryTrack", "#memoryDots");
-
-  /* ── LIGHTBOX ─────────────────────────────── */
-  $$(".photo-frame[data-lightbox]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (!lightbox || !lightboxImage) return;
-      lightboxImage.src = btn.dataset.lightbox;
-      lightbox.classList.remove("hidden");
-    });
-  });
-
-  function closeLightbox() {
-    if (lightbox) {
-      lightbox.classList.add("hidden");
-      lightboxImage.src = "";
-    }
-  }
-  if (lightboxClose) lightboxClose.addEventListener("click", closeLightbox);
-  if (lightbox) lightbox.addEventListener("click", (e) => {
-    if (e.target === lightbox) closeLightbox();
-  });
-
-  /* ── SNAPPY NO BUTTON EVASION ───────────────── */
-  function moveNoButton() {
-    if (!choiceArea || !noBtn) return;
-    const area = choiceArea.getBoundingClientRect();
-    const btn = noBtn.getBoundingClientRect();
-
-    const maxX = (area.width - btn.width) / 2 - 8;
-    const maxY = (area.height - btn.height) / 2 - 8;
-
-    const x = (Math.random() - 0.5) * 2 * maxX;
-    const y = (Math.random() - 0.5) * 2 * maxY;
-
-    noBtn.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
-  }
-
-  function handleNoInteraction(e) {
-    if (e) e.preventDefault();
-    noAttempts++;
-    if (hint) hint.textContent = noLines[Math.min(noAttempts - 1, noLines.length - 1)];
-    if (noBtn) noBtn.textContent = noLabels[Math.min(noAttempts, noLabels.length - 1)];
-    moveNoButton();
-  }
-
-  if (noBtn) {
-    noBtn.addEventListener("touchstart", handleNoInteraction, { passive: false });
-    noBtn.addEventListener("mouseenter", handleNoInteraction);
-    noBtn.addEventListener("click", handleNoInteraction);
-  }
-
-  if (yesBtn) {
-    yesBtn.addEventListener("click", () => {
-      if (questionIndex === 0) {
-        questionIndex = 1;
-        noAttempts = 0;
-        if (noBtn) noBtn.style.transform = "";
-        updateQuestion();
-        celebrate();
-      } else {
-        celebrate();
-        unlockReveal();
-      }
-    });
-  }
-
-  function updateQuestion() {
-    const q = questions[questionIndex];
-    if (questionLabel) questionLabel.textContent = q.label;
-    if (questionTitle) questionTitle.innerHTML = q.title;
-    if (questionSub) questionSub.textContent = q.sub;
-    if (hint) hint.textContent = q.hint;
-    if (noBtn) noBtn.textContent = noLabels[0];
-  }
-
-  /* ── UNLOCK REVEAL ─────────────────────────── */
-  function unlockReveal() {
-    const revealSlide = $(".slide[data-slide='reveal']");     if (!revealSlide) return;     revealSlide.classList.add("is-revealed");     revealSlide.style.display = "flex";     allSlides = $$(".slide");
-    slideObserver.observe(revealSlide);
-    buildHudDots();
-    scrollToSlide(allSlides.length - 1);
-    setTimeout(showMarkMessage, 1500);
-  }
-
-  function showMarkMessage() {
-    if (markShown || !markMessage) return;
-    markShown = true;
-    markMessage.classList.remove("hidden");
-    setTimeout(() => {
-      markMessage.style.transition = "opacity 0.8s ease";
-      markMessage.style.opacity = "0";
-      setTimeout(() => markMessage.classList.add("hidden"), 850);
-    }, 4000);
-  }
-
-  /* ── CONFETTI ─────────────────────────────── */
-  function celebrate() {
-    if (!confetti) return;
-    const colors = ["#ff8daf", "#ffd6e3", "#fff7fb", "#d8b4fe"];
-    for (let i = 0; i < 40; i++) {
-      const piece = document.createElement("span");
-      piece.className = "confetti-piece";
-      piece.style.left = Math.random() * 100 + "vw";
-      piece.style.setProperty("--drift", (Math.random() - 0.5) * 200 + "px");
-      piece.style.setProperty("--rotation", (Math.random() * 720 - 360) + "deg");
-      piece.style.setProperty("--fall-duration", (2.2 + Math.random() * 2) + "s");
-      piece.style.background = colors[i % colors.length];
-      confetti.appendChild(piece);
-      setTimeout(() => piece.remove(), 4500);
-    }
-  }
-
-  /* ── INIT ─────────────────────────────────── */
-  buildHudDots();
-})();
-</script>
+<script src="script.js" defer></script>
 </body>
 </html>
