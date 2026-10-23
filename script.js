@@ -1,11 +1,27 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const $ = (s) => document.querySelector(s);
-  const $$ = (s) => [...document.querySelectorAll(s)];
+(function () {
+  "use strict";
 
-  const page = $("#page");
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+  const deck = $("#deck");
+  let allSlides = $$(".slide");
+  const prevBtn = $("#prevBtn");
+  const nextBtn = $("#nextBtn");
+  const hudDots = $("#dots");
+  const counter = $("#counter");
+  const progressBar = $("#progressBar");
+  const swipeCue = $("#swipeCue");
   const beginBtn = $("#beginBtn");
-  const morning = $("#morning");
-  const reveal = $("#reveal");
+
+  const stars = $("#stars");
+  const floatingHearts = $("#floatingHearts");
+  const confetti = $("#confetti");
+  const markMessage = $("#markMessage");
+
+  const lightbox = $("#lightbox");
+  const lightboxImage = $("#lightboxImage");
+  const lightboxClose = $("#lightboxClose");
 
   const questionCard = $("#questionCard");
   const questionLabel = $("#questionLabel");
@@ -16,156 +32,214 @@ document.addEventListener("DOMContentLoaded", () => {
   const noBtn = $("#noBtn");
   const hint = $("#hint");
 
-  const lightbox = $("#lightbox");
-  const lightboxImage = $("#lightboxImage");
-  const lightboxClose = $("#lightboxClose");
-
-  const stars = $("#stars");
-  const floatingHearts = $("#floatingHearts");
-  const confetti = $("#confetti");
-  const markMessage = $("#markMessage");
-
+  let current = 0;
   let questionIndex = 0;
   let noAttempts = 0;
   let markShown = false;
 
   const questions = [
     {
-      label: "Question one · proceed carefully",
-      title: "Should I do<br><span>this again tomorrow?</span>",
+      label: "Question 1",
+      title: "Did this little<br><span>morning note help?</span>",
       sub: "Choose wisely. The developer has already over-engineered the answer. 😂",
       hint: "You can say no. Probably."
     },
     {
-      label: "Question two · now be honest",
-      title: "Are you happy<br><span>you opened this?</span>",
+      label: "Question 2",
+      title: "Do you still<br><span>love me?</span>",
       sub: "That is the only other question I have for you.",
       hint: "Just smile and press yes. 😌"
     }
   ];
 
   const noLines = [
-    "Nice try. 😂",
+    "Acha izo 😂",
     "Are you sure? 👀",
+    "Ghaii 💔, really",
     "Really sure?",
     "Reeeeally sure?",
-    "Reeeeally reeeeaaally sure?",
+    "Reeeeally reeeaaally sure?",
+    "I reject your answer. 😭",
     "That sure? Because I can keep asking. 😭",
-    "Okay, now you are just testing the developer.",
     "The answer is still waiting for you. ✦"
   ];
-
   const noLabels = [
-    "No",
-    "Still no?",
-    "Really?",
-    "Reeeeally?",
-    "Be serious 😂",
-    "Try again",
-    "Last chance",
-    "Nope…"
+    "No", "Still no?", "Really?", "Reeeeally?",
+    "Be serious 😂", "Try again", "Last chance", "Nope…"
   ];
 
-  if (!beginBtn || !morning || !page) return;
-
-  if (window.location.hash === "#morning") {
-    morning.classList.remove("hidden");
+  /* ── AMBIANCE ──────────────────────────────── */
+  if (stars) {
+    for (let i = 0; i < 36; i++) {
+      const s = document.createElement("span");
+      s.className = "star";
+      s.style.left = Math.random() * 100 + "%";
+      s.style.top = Math.random() * 100 + "%";
+      s.style.setProperty("--duration", (2.5 + Math.random() * 3).toFixed(2) + "s");
+      s.style.setProperty("--delay", (-Math.random() * 3).toFixed(2) + "s");
+      stars.appendChild(s);
+    }
+  }
+  if (floatingHearts) {
+    ["♡", "✦", "·", "✧"].forEach((sym, i) => {
+      const h = document.createElement("span");
+      h.textContent = sym;
+      h.style.left = [12, 35, 68, 88][i] + "%";
+      h.style.top = [20, 65, 30, 75][i] + "%";
+      h.style.fontSize = [14, 10, 12, 11][i] + "px";
+      h.style.setProperty("--duration", (4 + i * 0.5) + "s");
+      floatingHearts.appendChild(h);
+    });
   }
 
-  beginBtn.addEventListener("click", (event) => {
-    event.preventDefault();
-    morning.classList.remove("hidden");
-    morning.classList.add("fade-in");
-    history.replaceState(null, "", "#morning");
-    requestAnimationFrame(() => {
-      morning.scrollTop = 0;
-      morning.scrollIntoView({ behavior: "smooth", block: "start" });
+  /* ── HUD DOTS & NAVIGATION ─────────────────── */
+  function buildHudDots() {
+    if (!hudDots) return;
+    hudDots.innerHTML = "";
+    allSlides.filter(s => s.style.display !== "none").forEach((_, i) => {
+      const d = document.createElement("span");
+      d.addEventListener("click", () => scrollToSlide(i));
+      hudDots.appendChild(d);
+    });
+  }
+
+  function scrollToSlide(index) {
+    const visibleSlides = allSlides.filter(s => s.style.display !== "none");
+    if (index < 0 || index >= visibleSlides.length) return;
+    visibleSlides[index].scrollIntoView({ behavior: "smooth", inline: "start" });
+  }
+
+  /* ── OBSERVER FOR SLIDE TRACKING ────────────── */
+  const slideObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const visibleSlides = allSlides.filter(s => s.style.display !== "none");
+        const idx = visibleSlides.indexOf(entry.target);
+        if (idx !== -1) {
+          current = idx;
+          updateUI(visibleSlides);
+          lazyLoadIframes(entry.target);
+        }
+      }
+    });
+  }, { root: deck, threshold: 0.6 });
+
+  allSlides.forEach(s => slideObserver.observe(s));
+
+  function updateUI(visibleSlides) {
+    visibleSlides.forEach((s, i) => s.classList.toggle("is-active", i === current));
+
+    const dots = $$("span", hudDots);
+    dots.forEach((d, i) => d.classList.toggle("is-active", i === current));
+
+    if (counter) {
+      counter.textContent = String(current + 1).padStart(2, "0") + " / " + String(visibleSlides.length).padStart(2, "0");
+    }
+    if (progressBar) {
+      const pct = visibleSlides.length > 1 ? (current / (visibleSlides.length - 1)) * 100 : 100;
+      progressBar.style.width = pct + "%";
+    }
+    if (prevBtn) prevBtn.disabled = current === 0;
+    if (nextBtn) nextBtn.disabled = current === visibleSlides.length - 1;
+
+    if (current > 0 && swipeCue) swipeCue.classList.add("is-hidden");
+  }
+
+  function lazyLoadIframes(slideEl) {
+    const iframes = $$("iframe[data-src]", slideEl);
+    iframes.forEach(iframe => {
+      if (!iframe.src) {
+        iframe.src = iframe.dataset.src;
+      }
+    });
+  }
+
+  if (prevBtn) prevBtn.addEventListener("click", () => scrollToSlide(current - 1));
+  if (nextBtn) nextBtn.addEventListener("click", () => scrollToSlide(current + 1));
+  if (beginBtn) beginBtn.addEventListener("click", () => scrollToSlide(1));
+
+  /* ── CAROUSELS (MUSIC & MEMORIES) ──────────── */
+  function setupCarousel(trackSelector, dotsSelector) {
+    const track = $(trackSelector);
+    if (!track) return;
+    const cards = $$(".carousel-card", track);
+    const wrap = dotsSelector ? $(dotsSelector) : null;
+
+    if (wrap && wrap.children.length === 0) {
+      cards.forEach((_, i) => {
+        const d = document.createElement("span");
+        if (i === 0) d.classList.add("is-active");
+        wrap.appendChild(d);
+      });
+    }
+
+    const sync = () => {
+      const center = track.scrollLeft + track.clientWidth / 2;
+      let best = 0, dist = Infinity;
+      cards.forEach((card, i) => {
+        const c = card.offsetLeft + card.offsetWidth / 2;
+        const d = Math.abs(center - c);
+        if (d < dist) { dist = d; best = i; }
+      });
+      cards.forEach((c, i) => c.classList.toggle("is-active", i === best));
+      if (wrap) {
+        $$("span", wrap).forEach((d, i) => d.classList.toggle("is-active", i === best));
+      }
+    };
+
+    track.addEventListener("scroll", sync, { passive: true });
+  }
+
+  setupCarousel("#musicTrack", "#musicDots");
+  setupCarousel("#memoryTrack", "#memoryDots");
+
+  /* ── LIGHTBOX ─────────────────────────────── */
+  $$(".photo-frame[data-lightbox]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (!lightbox || !lightboxImage) return;
+      lightboxImage.src = btn.dataset.lightbox;
+      lightbox.classList.remove("hidden");
     });
   });
 
-  if (stars) {
-    for (let i = 0; i < 42; i++) {
-      const star = document.createElement("span");
-      star.className = "star";
-      star.style.left = Math.random() * 100 + "%";
-      star.style.top = Math.random() * 100 + "%";
-      star.style.setProperty("--duration", (2.5 + Math.random() * 4).toFixed(2) + "s");
-      star.style.setProperty("--delay", (-Math.random() * 4).toFixed(2) + "s");
-      stars.appendChild(star);
+  function closeLightbox() {
+    if (lightbox) {
+      lightbox.classList.add("hidden");
+      lightboxImage.src = "";
     }
   }
+  if (lightboxClose) lightboxClose.addEventListener("click", closeLightbox);
+  if (lightbox) lightbox.addEventListener("click", (e) => {
+    if (e.target === lightbox) closeLightbox();
+  });
 
-  if (floatingHearts) {
-    ["♡", "✦", "·", "✧"].forEach((symbol, index) => {
-      const heart = document.createElement("span");
-      heart.textContent = symbol;
-      heart.style.left = [10, 30, 70, 88][index] + "%";
-      heart.style.top = [18, 68, 28, 74][index] + "%";
-      heart.style.fontSize = [15, 10, 14, 11][index] + "px";
-      heart.style.setProperty("--duration", (3.8 + index * .65) + "s");
-      heart.style.setProperty("--delay", (-index * .7) + "s");
-      floatingHearts.appendChild(heart);
-    });
-  }
-
-  function updateQuestion() {
-    const q = questions[questionIndex];
-    questionLabel.textContent = q.label;
-    questionTitle.innerHTML = q.title;
-    questionSub.textContent = q.sub;
-    hint.textContent = q.hint;
-    noBtn.textContent = noLabels[Math.min(noAttempts, noLabels.length - 1)];
-  }
-
+  /* ── SNAPPY NO BUTTON EVASION ───────────────── */
   function moveNoButton() {
     if (!choiceArea || !noBtn) return;
-
     const area = choiceArea.getBoundingClientRect();
-    const button = noBtn.getBoundingClientRect();
+    const btn = noBtn.getBoundingClientRect();
 
-    const maxX = Math.max(8, area.width - button.width - 12);
-    const maxY = Math.max(8, area.height - button.height - 12);
-    const x = Math.random() * maxX - maxX / 2;
-    const y = Math.random() * maxY - maxY / 2;
+    const maxX = (area.width - btn.width) / 2 - 8;
+    const maxY = (area.height - btn.height) / 2 - 8;
 
-    noBtn.style.position = "absolute";
-    noBtn.style.transform = `translate(${x}px,${y}px)`;
+    const x = (Math.random() - 0.5) * 2 * maxX;
+    const y = (Math.random() - 0.5) * 2 * maxY;
+
+    noBtn.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
   }
 
-  function rejectNo() {
-    noAttempts += 1;
-    hint.textContent = noLines[Math.min(noAttempts - 1, noLines.length - 1)];
-    noBtn.textContent = noLabels[Math.min(noAttempts, noLabels.length - 1)];
-
-    if (noAttempts % 2 === 0) {
-      noBtn.animate(
-        [
-          { transform: "translate(0,0) rotate(0deg)" },
-          { transform: "translate(0,0) rotate(-7deg) scale(.97)" },
-          { transform: "translate(0,0) rotate(7deg) scale(1.03)" },
-          { transform: "translate(0,0) rotate(0deg)" }
-        ],
-        { duration: 360, easing: "ease-out" }
-      );
-    }
-
+  function handleNoInteraction(e) {
+    if (e) e.preventDefault();
+    noAttempts++;
+    if (hint) hint.textContent = noLines[Math.min(noAttempts - 1, noLines.length - 1)];
+    if (noBtn) noBtn.textContent = noLabels[Math.min(noAttempts, noLabels.length - 1)];
     moveNoButton();
   }
 
   if (noBtn) {
-    ["pointerenter", "focus"].forEach((eventName) => {
-      noBtn.addEventListener(eventName, rejectNo);
-    });
-
-    noBtn.addEventListener("touchstart", (event) => {
-      event.preventDefault();
-      rejectNo();
-    }, { passive: false });
-
-    noBtn.addEventListener("click", (event) => {
-      event.preventDefault();
-      rejectNo();
-    });
+    noBtn.addEventListener("touchstart", handleNoInteraction, { passive: false });
+    noBtn.addEventListener("mouseenter", handleNoInteraction);
+    noBtn.addEventListener("click", handleNoInteraction);
   }
 
   if (yesBtn) {
@@ -173,90 +247,31 @@ document.addEventListener("DOMContentLoaded", () => {
       if (questionIndex === 0) {
         questionIndex = 1;
         noAttempts = 0;
+        if (noBtn) noBtn.style.transform = "";
         updateQuestion();
         celebrate();
-
-        questionCard.animate(
-          [
-            { transform: "scale(.98)", opacity: .78 },
-            { transform: "scale(1)", opacity: 1 }
-          ],
-          { duration: 420, easing: "cubic-bezier(.2,.8,.2,1)" }
-        );
       } else {
         celebrate();
-        revealEnding();
+        unlockReveal();
       }
     });
   }
 
-  function setupCarousel(trackSelector, dotsSelector) {
-    const track = $(trackSelector);
-    if (!track) return;
-
-    const cards = $$(trackSelector + " .carousel-card");
-    const dots = $$(dotsSelector + " span");
-
-    const sync = () => {
-      const center = track.scrollLeft + track.clientWidth / 2;
-      let best = 0;
-      let distance = Infinity;
-
-      cards.forEach((card, index) => {
-        const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-        const delta = Math.abs(center - cardCenter);
-        if (delta < distance) {
-          distance = delta;
-          best = index;
-        }
-      });
-
-      cards.forEach((card, index) => card.classList.toggle("active", index === best));
-      dots.forEach((dot, index) => dot.classList.toggle("active", index === best));
-    };
-
-    track.addEventListener("scroll", sync, { passive: true });
-    window.addEventListener("resize", sync);
-    sync();
+  function updateQuestion() {
+    const q = questions[questionIndex];
+    if (questionLabel) questionLabel.textContent = q.label;
+    if (questionTitle) questionTitle.innerHTML = q.title;
+    if (questionSub) questionSub.textContent = q.sub;
+    if (hint) hint.textContent = q.hint;
+    if (noBtn) noBtn.textContent = noLabels[0];
   }
 
-  setupCarousel("#musicTrack", "#musicDots");
-  setupCarousel("#memoryTrack", "#memoryDots");
-
-  $$(".photo-frame[data-lightbox]").forEach((button) => {
-    button.addEventListener("click", () => {
-      if (!lightbox || !lightboxImage) return;
-      lightboxImage.src = button.dataset.lightbox;
-      lightboxImage.alt = button.querySelector("img")?.alt || "Memory";
-      lightbox.classList.remove("hidden");
-      document.body.style.overflow = "hidden";
-      lightboxClose?.focus();
-    });
-  });
-
-  function closeLightbox() {
-    if (!lightbox) return;
-    lightbox.classList.add("hidden");
-    lightboxImage.src = "";
-    document.body.style.overflow = "";
-  }
-
-  lightboxClose?.addEventListener("click", closeLightbox);
-  lightbox?.addEventListener("click", (event) => {
-    if (event.target === lightbox) closeLightbox();
-  });
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closeLightbox();
-  });
-
-  function revealEnding() {
-    reveal?.classList.remove("hidden");
-    reveal?.classList.add("fade-in");
-
-    setTimeout(() => {
-      reveal?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
-
+  /* ── UNLOCK REVEAL ─────────────────────────── */
+  function unlockReveal() {
+    const revealSlide = $(".slide[data-slide='reveal']");     if (!revealSlide) return;     revealSlide.classList.add("is-revealed");     revealSlide.style.display = "flex";     allSlides = $$(".slide");
+    slideObserver.observe(revealSlide);
+    buildHudDots();
+    scrollToSlide(allSlides.length - 1);
     setTimeout(showMarkMessage, 1500);
   }
 
@@ -264,32 +279,30 @@ document.addEventListener("DOMContentLoaded", () => {
     if (markShown || !markMessage) return;
     markShown = true;
     markMessage.classList.remove("hidden");
-
     setTimeout(() => {
-      markMessage.style.transition = "opacity .85s ease";
+      markMessage.style.transition = "opacity 0.8s ease";
       markMessage.style.opacity = "0";
-      setTimeout(() => {
-        markMessage.classList.add("hidden");
-        markMessage.style.opacity = "";
-        markMessage.style.transition = "";
-      }, 900);
+      setTimeout(() => markMessage.classList.add("hidden"), 850);
     }, 4000);
   }
 
+  /* ── CONFETTI ─────────────────────────────── */
   function celebrate() {
     if (!confetti) return;
-
-    for (let i = 0; i < 50; i++) {
+    const colors = ["#ff8daf", "#ffd6e3", "#fff7fb", "#d8b4fe"];
+    for (let i = 0; i < 40; i++) {
       const piece = document.createElement("span");
       piece.className = "confetti-piece";
       piece.style.left = Math.random() * 100 + "vw";
-      piece.style.setProperty("--drift", `${(Math.random() - .5) * 220}px`);
-      piece.style.setProperty("--rotation", `${Math.random() * 900 - 450}deg`);
-      piece.style.setProperty("--fall-duration", `${2.4 + Math.random() * 2.6}s`);
-      piece.style.background = ["#ff8daf","#ffd6e3","#fff7fb","#d8b4fe"][i % 4];
-      piece.style.animationDelay = `${Math.random() * .25}s`;
+      piece.style.setProperty("--drift", (Math.random() - 0.5) * 200 + "px");
+      piece.style.setProperty("--rotation", (Math.random() * 720 - 360) + "deg");
+      piece.style.setProperty("--fall-duration", (2.2 + Math.random() * 2) + "s");
+      piece.style.background = colors[i % colors.length];
       confetti.appendChild(piece);
-      setTimeout(() => piece.remove(), 6000);
+      setTimeout(() => piece.remove(), 4500);
     }
   }
-});
+
+  /* ── INIT ─────────────────────────────────── */
+  buildHudDots();
+})();
